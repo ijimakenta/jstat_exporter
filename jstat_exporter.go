@@ -25,64 +25,38 @@ var (
 type Exporter struct {
 	jstatPath  string
 	targetPid  string
-	newMax     prometheus.Gauge
-	newCommit  prometheus.Gauge
-	oldMax     prometheus.Gauge
-	oldCommit  prometheus.Gauge
-	metaMax    prometheus.Gauge
-	metaCommit prometheus.Gauge
-	metaUsed   prometheus.Gauge
-	oldUsed    prometheus.Gauge
+	sv0Cur     prometheus.Gauge
+	sv1Cur     prometheus.Gauge
 	sv0Used    prometheus.Gauge
 	sv1Used    prometheus.Gauge
+	edenCur    prometheus.Gauge
 	edenUsed   prometheus.Gauge
-	fgcTimes   prometheus.Counter
-	fgcSec     prometheus.Gauge
+	oldCur     prometheus.Gauge
+	oldUsed    prometheus.Gauge
+	metaCur    prometheus.Gauge
+	metaUsed   prometheus.Gauge
+	classCur   prometheus.Gauge
+	classUsed  prometheus.Gauge
+	ygcTimes   prometheus.Gauge
+	ygcSec    prometheus.Gauge
+	fgcTimes   prometheus.Gauge
+	fgcSec    prometheus.Gauge
+	gcSec     prometheus.Gauge
 }
 
 func NewExporter(jstatPath string, targetPid string) *Exporter {
 	return &Exporter{
 		jstatPath: jstatPath,
 		targetPid: targetPid,
-		newMax: prometheus.NewGauge(prometheus.GaugeOpts{
+		sv0Cur: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
-			Name:      "newMax",
-			Help:      "newMax",
+			Name:      "sv0Cur",
+			Help:      "sv0Cur",
 		}),
-		newCommit: prometheus.NewGauge(prometheus.GaugeOpts{
+		sv1Cur: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
-			Name:      "newCommit",
-			Help:      "newCommit",
-		}),
-		oldMax: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "oldMax",
-			Help:      "oldMax",
-		}),
-		oldCommit: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "oldCommit",
-			Help:      "oldCommit",
-		}),
-		metaMax: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "metaMax",
-			Help:      "metaMax",
-		}),
-		metaCommit: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "metaCommit",
-			Help:      "metaCommit",
-		}),
-		metaUsed: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "metaUsed",
-			Help:      "metaUsed",
-		}),
-		oldUsed: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: namespace,
-			Name:      "oldUsed",
-			Help:      "oldUsed",
+			Name:      "sv1Cur",
+			Help:      "sv1Cur",
 		}),
 		sv0Used: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -94,12 +68,57 @@ func NewExporter(jstatPath string, targetPid string) *Exporter {
 			Name:      "sv1Used",
 			Help:      "sv1Used",
 		}),
+		edenCur: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "edenCur",
+			Help:      "edenCur",
+		}),
 		edenUsed: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "edenUsed",
 			Help:      "edenUsed",
 		}),
-		fgcTimes: prometheus.NewCounter(prometheus.CounterOpts{
+		oldCur: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "oldCur",
+			Help:      "oldCur",
+		}),
+		oldUsed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "oldUsed",
+			Help:      "oldUsed",
+		}),
+		metaCur: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "metaCur",
+			Help:      "metaCur",
+		}),
+		metaUsed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "metaUsed",
+			Help:      "metaUsed",
+		}),
+		classCur: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "classCur",
+			Help:      "classCur",
+		}),
+		classUsed: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "classUsed",
+			Help:      "classUsed",
+		}),
+		ygcTimes: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "ygcTimes",
+			Help:      "ygcTimes",
+		}),
+		ygcSec: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "ygcSec",
+			Help:      "ygcSec",
+		}),
+		fgcTimes: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace: namespace,
 			Name:      "fgcTimes",
 			Help:      "fgcTimes",
@@ -109,37 +128,43 @@ func NewExporter(jstatPath string, targetPid string) *Exporter {
 			Name:      "fgcSec",
 			Help:      "fgcSec",
 		}),
+		gcSec: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "gcSec",
+			Help:      "gcSec",
+		}),
 	}
 }
 
 // Describe implements the prometheus.Collector interface.
 func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
-	e.newMax.Describe(ch)
-	e.newCommit.Describe(ch)
-	e.oldMax.Describe(ch)
-	e.oldCommit.Describe(ch)
-	e.metaMax.Describe(ch)
-	e.metaCommit.Describe(ch)
-	e.metaUsed.Describe(ch)
-	e.oldUsed.Describe(ch)
+	e.sv0Cur.Describe(ch)
+	e.sv1Cur.Describe(ch)
 	e.sv0Used.Describe(ch)
 	e.sv1Used.Describe(ch)
+	e.edenCur.Describe(ch)
 	e.edenUsed.Describe(ch)
+	e.oldCur.Describe(ch)
+	e.oldUsed.Describe(ch)
+	e.metaCur.Describe(ch)
+	e.metaUsed.Describe(ch)
+	e.classCur.Describe(ch)
+	e.classUsed.Describe(ch)
+	e.ygcTimes.Describe(ch)
+	e.ygcSec.Describe(ch)
 	e.fgcTimes.Describe(ch)
 	e.fgcSec.Describe(ch)
+	e.gcSec.Describe(ch)
 }
 
 // Collect implements the prometheus.Collector interface.
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
-	e.JstatGccapacity(ch)
-	e.JstatGcold(ch)
-	e.JstatGcnew(ch)
 	e.JstatGc(ch)
 }
 
-func (e *Exporter) JstatGccapacity(ch chan<- prometheus.Metric) {
 
-	out, err := exec.Command(e.jstatPath, "-gccapacity", e.targetPid).Output()
+func (e *Exporter) JstatGc(ch chan<- prometheus.Metric) {
+	out, err := exec.Command(e.jstatPath, "-gc", e.targetPid).Output()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -147,82 +172,19 @@ func (e *Exporter) JstatGccapacity(ch chan<- prometheus.Metric) {
 	for i, line := range strings.Split(string(out), "\n") {
 		if i == 1 {
 			parts := strings.Fields(line)
-			newMax, err := strconv.ParseFloat(parts[1], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			e.newMax.Set(newMax)
-			e.newMax.Collect(ch)
-			newCommit, err := strconv.ParseFloat(parts[2], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			e.newCommit.Set(newCommit)
-			e.newCommit.Collect(ch)
-			oldMax, err := strconv.ParseFloat(parts[7], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			e.oldMax.Set(oldMax)
-			e.oldMax.Collect(ch)
-			oldCommit, err := strconv.ParseFloat(parts[8], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			e.oldCommit.Set(oldCommit)
-			e.oldCommit.Collect(ch)
-			metaMax, err := strconv.ParseFloat(parts[11], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			e.metaMax.Set(metaMax)
-			e.metaMax.Collect(ch)
-			metaCommit, err := strconv.ParseFloat(parts[12], 64)
-			if err != nil {
-				log.Fatal(err)
-			}
-			e.metaCommit.Set(metaCommit)
-			e.metaCommit.Collect(ch)
-		}
-	}
-}
 
-func (e *Exporter) JstatGcold(ch chan<- prometheus.Metric) {
-
-	out, err := exec.Command(e.jstatPath, "-gcold", e.targetPid).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i, line := range strings.Split(string(out), "\n") {
-		if i == 1 {
-			parts := strings.Fields(line)
-			metaUsed, err := strconv.ParseFloat(parts[1], 64)
+			sv0Cur, err := strconv.ParseFloat(parts[0], 64)
 			if err != nil {
 				log.Fatal(err)
 			}
-			e.metaUsed.Set(metaUsed) // MU: Metaspace utilization (kB).
-			e.metaUsed.Collect(ch)
-			oldUsed, err := strconv.ParseFloat(parts[5], 64)
+			e.sv0Cur.Set(sv0Cur)
+			e.sv0Cur.Collect(ch)
+			sv1Cur, err := strconv.ParseFloat(parts[1], 64)
 			if err != nil {
 				log.Fatal(err)
 			}
-			e.oldUsed.Set(oldUsed) // OU: Old space utilization (kB).
-			e.oldUsed.Collect(ch)
-		}
-	}
-}
-
-func (e *Exporter) JstatGcnew(ch chan<- prometheus.Metric) {
-
-	out, err := exec.Command(e.jstatPath, "-gcnew", e.targetPid).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i, line := range strings.Split(string(out), "\n") {
-		if i == 1 {
-			parts := strings.Fields(line)
+			e.sv1Cur.Set(sv1Cur)
+			e.sv1Cur.Collect(ch)
 			sv0Used, err := strconv.ParseFloat(parts[2], 64)
 			if err != nil {
 				log.Fatal(err)
@@ -235,26 +197,66 @@ func (e *Exporter) JstatGcnew(ch chan<- prometheus.Metric) {
 			}
 			e.sv1Used.Set(sv1Used)
 			e.sv1Used.Collect(ch)
-			edenUsed, err := strconv.ParseFloat(parts[8], 64)
+			edenCur, err := strconv.ParseFloat(parts[4], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.edenCur.Set(edenCur)
+			e.edenCur.Collect(ch)
+			edenUsed, err := strconv.ParseFloat(parts[5], 64)
 			if err != nil {
 				log.Fatal(err)
 			}
 			e.edenUsed.Set(edenUsed)
 			e.edenUsed.Collect(ch)
-		}
-	}
-}
-
-func (e *Exporter) JstatGc(ch chan<- prometheus.Metric) {
-
-	out, err := exec.Command(e.jstatPath, "-gc", e.targetPid).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for i, line := range strings.Split(string(out), "\n") {
-		if i == 1 {
-			parts := strings.Fields(line)
+			oldCur, err := strconv.ParseFloat(parts[6], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.oldCur.Set(oldCur)
+			e.oldCur.Collect(ch)
+			oldUsed, err := strconv.ParseFloat(parts[7], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.oldUsed.Set(oldUsed)
+			e.oldUsed.Collect(ch)
+			metaCur, err := strconv.ParseFloat(parts[8], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.metaCur.Set(metaCur)
+			e.metaCur.Collect(ch)
+			metaUsed, err := strconv.ParseFloat(parts[9], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.metaUsed.Set(metaUsed)
+			e.metaUsed.Collect(ch)
+			classCur, err := strconv.ParseFloat(parts[10], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.classCur.Set(classCur)
+			e.classCur.Collect(ch)
+			classUsed, err := strconv.ParseFloat(parts[11], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.classUsed.Set(classUsed)
+			e.classUsed.Collect(ch)
+			ygcTimes, err := strconv.ParseFloat(parts[12], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.ygcTimes.Set(ygcTimes)
+			e.ygcTimes.Collect(ch)
+			ygcSec, err := strconv.ParseFloat(parts[13], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.ygcSec.Set(ygcSec)
+			e.ygcSec.Collect(ch)
 			fgcTimes, err := strconv.ParseFloat(parts[14], 64)
 			if err != nil {
 				log.Fatal(err)
@@ -267,6 +269,12 @@ func (e *Exporter) JstatGc(ch chan<- prometheus.Metric) {
 			}
 			e.fgcSec.Set(fgcSec)
 			e.fgcSec.Collect(ch)
+			gcSec, err := strconv.ParseFloat(parts[16], 64)
+			if err != nil {
+				log.Fatal(err)
+			}
+			e.gcSec.Set(gcSec)
+			e.gcSec.Collect(ch)
 		}
 	}
 }
@@ -292,5 +300,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
