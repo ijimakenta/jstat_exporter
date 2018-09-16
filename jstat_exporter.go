@@ -38,10 +38,10 @@ type Exporter struct {
 	classCur   prometheus.Gauge
 	classUsed  prometheus.Gauge
 	ygcTimes   prometheus.Gauge
-	ygcSec    prometheus.Gauge
+	ygcSec     prometheus.Gauge
 	fgcTimes   prometheus.Gauge
-	fgcSec    prometheus.Gauge
-	gcSec     prometheus.Gauge
+	fgcSec     prometheus.Gauge
+	gcSec      prometheus.Gauge
 }
 
 func NewExporter(jstatPath string, targetPid string) *Exporter {
